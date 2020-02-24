@@ -40,7 +40,7 @@ def read_rdb(text):
     datalines = []
     count = 0
     for line in text.splitlines():
-        if line[0] == '#':
+        if line[0] == "#":
             header.append(line)
         elif count == 0:
             columns = line.split()
@@ -52,16 +52,17 @@ def read_rdb(text):
             datalines.append(line)
     data = "\n".join(datalines)
 
-    outputDF = pd.read_csv(StringIO(data),
-                           sep='\t',
-                           comment='#',
-                           header=None,
-                           names=columns,
-                           dtype={'site_no': str, 'parameter_cd': str},
-                           )
+    outputDF = pd.read_csv(
+        StringIO(data),
+        sep="\t",
+        comment="#",
+        header=None,
+        names=columns,
+        dtype={"site_no": str, "parameter_cd": str},
+    )
 
-    #outputDF.outputDF.filter(like='_cd').columns
-    #TODO: code columns ('*._cd') should be interpreted as strings.
+    # outputDF.outputDF.filter(like='_cd').columns
+    # TODO: code columns ('*._cd') should be interpreted as strings.
 
     return outputDF, columns, dtype, header
 
@@ -105,9 +106,12 @@ def field_meas(site):
         adjusted' rating curve constructed for this site.
 
     """
-    url = 'https://waterdata.usgs.gov/pa/nwis/measurements?site_no=' + site + \
-          '&agency_cd=USGS&format=rdb_expanded'
-    headers = {'Accept-encoding': 'gzip'}
+    url = (
+        "https://waterdata.usgs.gov/pa/nwis/measurements?site_no="
+        + site
+        + "&agency_cd=USGS&format=rdb_expanded"
+    )
+    headers = {"Accept-encoding": "gzip"}
 
     print("Retrieving field measurements for site #", site, " from ", url)
     response = requests.get(url, headers=headers)
@@ -120,12 +124,12 @@ def field_meas(site):
     outputDF.measurement_dt = pd.to_datetime(outputDF.measurement_dt)
 
     # An attempt to use the tz_cd column to make measurement_dt timezone aware.
-    #outputDF.tz_cd.replace({np.nan: 'UTC'}, inplace=True)
-    #def f(x, y):
+    # outputDF.tz_cd.replace({np.nan: 'UTC'}, inplace=True)
+    # def f(x, y):
     #    return x.tz_localize(y)
-    #outputDF['datetime'] = outputDF[['measurement_dt', 'tz_cd']].apply(lambda x: f(*x), axis=1)
+    # outputDF['datetime'] = outputDF[['measurement_dt', 'tz_cd']].apply(lambda x: f(*x), axis=1)
 
-    outputDF.set_index('measurement_dt', inplace=True)
+    outputDF.set_index("measurement_dt", inplace=True)
 
     return outputDF
 
@@ -142,10 +146,13 @@ def peaks(site):
 
         a header of meta-data supplied by the USGS with the data series.
     """
-    url = 'https://nwis.waterdata.usgs.gov/nwis/peak?site_no=' + site + \
-    '&agency_cd=USGS&format=rdb'
+    url = (
+        "https://nwis.waterdata.usgs.gov/nwis/peak?site_no="
+        + site
+        + "&agency_cd=USGS&format=rdb"
+    )
 
-    headers = {'Accept-encoding': 'gzip'}
+    headers = {"Accept-encoding": "gzip"}
 
     print("Retrieving annual peak discharges for site #", site, " from ", url)
     response = requests.get(url, headers=headers)
@@ -153,7 +160,7 @@ def peaks(site):
     outputDF, columns, dtype, header = read_rdb(response.text)
     outputDF.peak_dt = pd.to_datetime(outputDF.peak_dt)
 
-    outputDF.set_index('peak_dt', inplace=True)
+    outputDF.set_index("peak_dt", inplace=True)
 
     return outputDF
 
@@ -172,13 +179,16 @@ def rating_curve(site):
     Note:
         Rating curves change over time
     """
-    url = "https://waterdata.usgs.gov/nwisweb/data/ratings/exsa/USGS." + \
-          site + ".exsa.rdb"
-    headers = {'Accept-encoding': 'gzip'}
+    url = (
+        "https://waterdata.usgs.gov/nwisweb/data/ratings/exsa/USGS."
+        + site
+        + ".exsa.rdb"
+    )
+    headers = {"Accept-encoding": "gzip"}
     print("Retrieving rating curve for site #", site, " from ", url)
     response = requests.get(url, headers=headers)
     outputDF, columns, dtype, header = read_rdb(response.text)
-    outputDF.columns = ['stage', 'shift', 'discharge', 'stor']
+    outputDF.columns = ["stage", "shift", "discharge", "stor"]
     """
     outputDF = pd.read_csv(StringIO(response.text),
                      sep='\t',
@@ -191,7 +201,7 @@ def rating_curve(site):
     return outputDF
 
 
-def stats(site, statReportType='daily', **kwargs):
+def stats(site, statReportType="daily", **kwargs):
     """Return statistics from the USGS Stats Service as a dataframe.
 
     Args:
@@ -246,24 +256,26 @@ def stats(site, statReportType='daily', **kwargs):
     url = "https://waterservices.usgs.gov/nwis/stat/"
 
     headers = {
-            'Accept-encoding': 'gzip',
-            }
+        "Accept-encoding": "gzip",
+    }
     # Set default values for parameters that are too obscure to put into call
     # signature.
     params = {
-            'statReportType': statReportType,
-            'statType': 'all',
-            'sites': site,
-            'format': 'rdb',
-            }
+        "statReportType": statReportType,
+        "statType": "all",
+        "sites": site,
+        "format": "rdb",
+    }
     # Overwrite defaults if they are specified.
     params.update(kwargs)
 
     response = requests.get(url, headers=headers, params=params)
-    print(f"Retrieving {params['statReportType']} statistics for site #{params['sites']} from {response.url}")
+    print(
+        f"Retrieving {params['statReportType']} statistics for site #{params['sites']} from {response.url}"
+    )
 
     if response.status_code != 200:
-        print(f'The USGS has returned an error code of {response.status_code}')
+        print(f"The USGS has returned an error code of {response.status_code}")
         # If this code is being run inside of a notebook, the USGS error page
         # will be displayed.
         display.display(display.HTML(response.text))
